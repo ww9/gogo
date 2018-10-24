@@ -1,34 +1,37 @@
-# Goreload
+# GoGo
 
-`goreload` forks from codegangsta/gin and remove unused features.
+`gogo` compiles and restarts Go applications when code changes.
 
-Just run `goreload` in your app directory.
-`goreload` will automatically recompile your code when it
-detects a change.
+## Usage
 
-## Installation
+`go install -i github.com/ww9/gogo`
 
-```shell
-go get -u github.com/acoshift/goreload
-```
+`gogo main.go`
 
-## Basic usage
-
-```shell
-goreload main.go
-```
-
-Options
+## Options
 
 ```txt
-   --bin value, -b value         name of generated binary file (default: ".goreload")
-   --path value, -t value        Path to watch files from (default: ".")
-   --build value, -d value       Path to build files from (defaults to same value as --path)
-   --excludeDir value, -x value  Relative directories to exclude
-   --all                         reloads whenever any file changes, as opposed to reloading only on .go file change
-   --buildArgs value             Additional go build arguments
-   --logPrefix value             Setup custom log prefix
-   --notifications               enable desktop notifications
-   --help, -h                    show help
-   --version, -v                 print the version
+  -all					reloads whenever any file changes instead of only .go files
+  -bin string			name of generated binary file (default ".gogo")
+  -buildargs string		additional go build arguments
+  -watchdir string		path to monitor for file changes (default ".")
+  -builddir string		path to build files from (defaults to -watchdir)
+  -excludedirs value	relative directories to skip monitoring for file changes. multiple paths can be specified by repeating the -excludedirs flag
+  -godep				use godep when building
+  -logprefix string		log prefix (default "gogo")
+  -runargs string		arguments passed when running the program
 ```
+
+# Changelog
+
+* Removed dependency of [github.com/urfave/cli](https://github.com/urfave/cli) in favor of `flag` from standard library
+
+* Removed Builder and Runner interfaces which were implemented by only one struct each
+
+* Added `-runargs` cli argument to allow passing arguments when running the program
+
+* Renamed from goreload to gogo
+
+## Credits
+
+This is heavily modified fork from [acoshift/goreload](https://github.com/acoshift/goreload) which itself is a fork from [codegangsta/gin](https://github.com/codegangsta/gin). All credits go the their contributors.

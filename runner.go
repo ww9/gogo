@@ -1,4 +1,4 @@
-package internal
+package main
 
 import (
 	"io"
@@ -10,15 +10,7 @@ import (
 	"time"
 )
 
-// Runner interface
-type Runner interface {
-	Run() (*exec.Cmd, error)
-	Info() (os.FileInfo, error)
-	SetWriter(io.Writer)
-	Kill() error
-}
-
-type runner struct {
+type Runner struct {
 	bin       string
 	args      []string
 	writer    io.Writer
@@ -26,9 +18,8 @@ type runner struct {
 	starttime time.Time
 }
 
-// NewRunner creates new runner
-func NewRunner(bin string, args ...string) Runner {
-	return &runner{
+func NewRunner(bin string, args ...string) *Runner {
+	return &Runner{
 		bin:       bin,
 		args:      args,
 		writer:    ioutil.Discard,
@@ -36,7 +27,7 @@ func NewRunner(bin string, args ...string) Runner {
 	}
 }
 
-func (r *runner) Run() (*exec.Cmd, error) {
+func (r *Runner) Run() (*exec.Cmd, error) {
 	if r.needsRefresh() {
 		r.Kill()
 	}
@@ -52,15 +43,15 @@ func (r *runner) Run() (*exec.Cmd, error) {
 	return r.command, nil
 }
 
-func (r *runner) Info() (os.FileInfo, error) {
+func (r *Runner) Info() (os.FileInfo, error) {
 	return os.Stat(r.bin)
 }
 
-func (r *runner) SetWriter(writer io.Writer) {
+func (r *Runner) SetWriter(writer io.Writer) {
 	r.writer = writer
 }
 
-func (r *runner) Kill() error {
+func (r *Runner) Kill() error {
 	if r.command != nil && r.command.Process != nil {
 		done := make(chan error)
 		go func() {
@@ -91,11 +82,11 @@ func (r *runner) Kill() error {
 	return nil
 }
 
-func (r *runner) Exited() bool {
+func (r *Runner) Exited() bool {
 	return r.command != nil && r.command.ProcessState != nil && r.command.ProcessState.Exited()
 }
 
-func (r *runner) runBin() error {
+func (r *Runner) runBin() error {
 	r.command = exec.Command(r.bin, r.args...)
 	stdout, err := r.command.StdoutPipe()
 	if err != nil {
@@ -120,7 +111,7 @@ func (r *runner) runBin() error {
 	return nil
 }
 
-func (r *runner) needsRefresh() bool {
+func (r *Runner) needsRefresh() bool {
 	info, err := r.Info()
 	if err != nil {
 		return false

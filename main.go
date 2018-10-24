@@ -2,154 +2,83 @@ package main
 
 import (
 	"errors"
+	"flag"
 	"fmt"
+	"strings"
 
-	"github.com/acoshift/goreload/internal"
 	shellwords "github.com/mattn/go-shellwords"
-	"gopkg.in/urfave/cli.v1"
 
 	"log"
 	"os"
 	"os/signal"
 	"path/filepath"
-	"strings"
 	"syscall"
 	"time"
-
-	"github.com/0xAX/notificator"
 )
 
 var (
-	startTime     = time.Now()
-	logger        = log.New(os.Stdout, "[goreload] ", 0)
-	buildError    error
-	colorGreen    = string([]byte{27, 91, 57, 55, 59, 51, 50, 59, 49, 109})
-	colorRed      = string([]byte{27, 91, 57, 55, 59, 51, 49, 59, 49, 109})
-	colorReset    = string([]byte{27, 91, 48, 109})
-	notifier      = notificator.New(notificator.Options{AppName: "Go Reload Build"})
-	notifications = false
+	startTime  = time.Now()
+	logger     = log.New(os.Stdout, "[gogo] ", 0)
+	buildError error
 )
 
+// We use long flag names because all flags are passed when running the program and we don't want to conflict with sane flag names
+var flagAllFiles = flag.Bool("all", false, "reloads whenever any file changes instead of only .go files")
+var flagBinaryFileName = flag.String("bin", ".gogo", "name of generated binary file")
+var flagWatchDir = flag.String("watchdir", ".", "path to monitor for file changes")
+var flagBuildDir = flag.String("builddir", "", "path to build files from (defaults to -watchdir)")
+var flagExcludeDirs StringListArg
+var flagGoDep = flag.Bool("godep", false, "use godep when building")
+var flagBuildArgs = flag.String("buildargs", "", "additional go build arguments")
+var flagRunArgs = flag.String("runargs", "", "arguments passed when running the program")
+var flagLogPrefix = flag.String("logprefix", "gogo", "log prefix")
+
 func main() {
-	app := cli.NewApp()
-	app.Name = "goreload"
-	app.Usage = "A live reload utility for Go web applications."
-	app.Action = mainAction
-	app.Flags = []cli.Flag{
-		cli.StringFlag{
-			Name:  "bin,b",
-			Value: ".goreload",
-			Usage: "name of generated binary file",
-		},
-		cli.StringFlag{
-			Name:  "path,t",
-			Value: ".",
-			Usage: "Path to watch files from",
-		},
-		cli.StringFlag{
-			Name:  "build,d",
-			Value: "",
-			Usage: "Path to build files from (defaults to same value as --path)",
-		},
-		cli.StringSliceFlag{
-			Name:  "excludeDir,x",
-			Value: &cli.StringSlice{},
-			Usage: "Relative directories to exclude",
-		},
-		cli.BoolFlag{
-			Name:  "all",
-			Usage: "reloads whenever any file changes, as opposed to reloading only on .go file change",
-		},
-		cli.StringFlag{
-			Name:  "buildArgs",
-			Usage: "Additional go build arguments",
-		},
-		cli.StringFlag{
-			Name:  "logPrefix",
-			Usage: "Log prefix",
-			Value: "goreload",
-		},
-		cli.BoolFlag{
-			Name:  "notifications",
-			Usage: "Enables desktop notifications",
-		},
-	}
-	app.Commands = []cli.Command{
-		{
-			Name:      "run",
-			ShortName: "r",
-			Usage:     "Run the goreload",
-			Action:    mainAction,
-		},
+	flag.Var(&flagExcludeDirs, "excludedir", "relative directories to skip monitoring for file changes. multiple paths can be specified by repeating the -excludedir flag")
+	flag.Parse()
+	if flagExcludeDirs == nil {
+		flagExcludeDirs = StringListArg{}
 	}
 
-	app.Run(os.Args)
-}
-
-func mainAction(c *cli.Context) {
-	all := c.GlobalBool("all")
-	logPrefix := c.GlobalString("logPrefix")
-	notifications = c.GlobalBool("notifications")
-
-	logger.SetPrefix(fmt.Sprintf("[%s] ", logPrefix))
-
+	logger.SetPrefix(fmt.Sprintf("[%s] ", *flagLogPrefix))
 	wd, err := os.Getwd()
 	if err != nil {
 		logger.Fatal(err)
 	}
-
-	buildArgs, err := shellwords.Parse(c.GlobalString("buildArgs"))
+	buildArgs, err := shellwords.Parse(*flagBuildArgs)
 	if err != nil {
 		logger.Fatal(err)
 	}
-
-	buildPath := c.GlobalString("build")
-	if buildPath == "" {
-		buildPath = c.GlobalString("path")
+	runArgs, err := shellwords.Parse(*flagRunArgs)
+	if err != nil {
+		logger.Fatal(err)
 	}
-	builder := internal.NewBuilder(buildPath, c.GlobalString("bin"), wd, buildArgs)
-	runner := internal.NewRunner(filepath.Join(wd, builder.Binary()), c.Args()...)
+	if *flagBuildDir == "" {
+		*flagBuildDir = *flagWatchDir
+	}
+	builder := NewBuilder(*flagBuildDir, *flagBinaryFileName, *flagGoDep, wd, buildArgs)
+	runner := NewRunner(filepath.Join(wd, builder.Binary()), runArgs...)
 	runner.SetWriter(os.Stdout)
 
-	shutdown(runner)
+	exitGracefully(runner)
 
-	// build right now
 	build(builder, runner, logger)
 
-	// scan for changes
-	scanChanges(c.GlobalString("path"), c.GlobalStringSlice("excludeDir"), all, func(path string) {
+	scanChanges(*flagWatchDir, flagExcludeDirs, *flagAllFiles, func(path string) {
 		runner.Kill()
 		build(builder, runner, logger)
 	})
 }
 
-func build(builder internal.Builder, runner internal.Runner, logger *log.Logger) {
-	logger.Println("Building...")
-
-	if notifications {
-		notifier.Push("Build Started!", "Building "+builder.Binary()+"...", "", notificator.UR_NORMAL)
-	}
+func build(builder *Builder, runner *Runner, logger *log.Logger) {
 	err := builder.Build()
 	if err != nil {
 		buildError = err
-		logger.Printf("%sBuild failed%s\n", colorRed, colorReset)
+		logger.Printf("Build failed\n")
 		fmt.Println(builder.Errors())
-		buildErrors := strings.Split(builder.Errors(), "\n")
-		if notifications {
-			if err := notifier.Push("Build FAILED!", buildErrors[1], "", notificator.UR_CRITICAL); err != nil {
-				logger.Println("Notification send failed")
-			}
-		}
 	} else {
 		buildError = nil
-		logger.Printf("%sBuild finished%s\n", colorGreen, colorReset)
 		runner.Run()
-
-		if notifications {
-			if err := notifier.Push("Build Succeded", "Build Finished!", "", notificator.UR_CRITICAL); err != nil {
-				logger.Println("Notification send failed")
-			}
-		}
 	}
 
 	time.Sleep(100 * time.Millisecond)
@@ -186,7 +115,8 @@ func scanChanges(watchPath string, excludeDirs []string, allFiles bool, cb scanC
 	}
 }
 
-func shutdown(runner internal.Runner) {
+// exitGracefully listens for exit signal (usually when user presses CTRL+C) and gracefully close the running program before exiting.
+func exitGracefully(runner *Runner) {
 	c := make(chan os.Signal, 2)
 	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
 	go func() {
@@ -198,4 +128,19 @@ func shutdown(runner internal.Runner) {
 		}
 		os.Exit(1)
 	}()
+}
+
+// StringListArg is used so we can parse and accumulate multiple values of the same cli flag.
+// For example -excludedir "dir1" -excludedir "dir2"
+type StringListArg []string
+
+func (arg *StringListArg) String() string {
+	if arg == nil {
+		return ""
+	}
+	return strings.Join(*arg, ";")
+}
+func (arg *StringListArg) Set(value string) error {
+	*arg = append(*arg, value)
+	return nil
 }
