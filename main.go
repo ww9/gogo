@@ -22,7 +22,6 @@ var (
 	buildError error
 )
 
-// We use long flag names because all flags are passed when running the program and we don't want to conflict with sane flag names
 var flagAllFiles = flag.Bool("all", false, "reloads whenever any file changes instead of only .go files")
 var flagBinaryFileName = flag.String("bin", ".gogo", "name of generated binary file")
 var flagWatchDir = flag.String("watchdir", ".", "path to monitor for file changes")
@@ -34,7 +33,7 @@ var flagRunArgs = flag.String("runargs", "", "arguments passed when running the 
 var flagLogPrefix = flag.String("logprefix", "gogo", "log prefix")
 
 func main() {
-	flag.Var(&flagExcludeDirs, "excludedir", "relative directories to skip monitoring for file changes. multiple paths can be specified by repeating the -excludedir flag")
+	flag.Var(&flagExcludeDirs, "excludedir", "directories to skip monitoring")
 	flag.Parse()
 	if flagExcludeDirs == nil {
 		flagExcludeDirs = StringListArg{}
