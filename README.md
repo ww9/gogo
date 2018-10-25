@@ -1,4 +1,4 @@
-# GoGo
+# gogo 🏃
 
 `gogo` compiles and restarts Go applications when code changes.
 
@@ -21,6 +21,24 @@
   -logprefix string		log prefix (default "gogo")
   -runargs string		arguments passed when running the program
 ```
+
+## Features & Todo
+
+- [x] Watches a directory and its subdirectories for .go file changes
+- [x] Recompiles and restarts the Go app when file changes are detected
+- [X] Supports listening to all file changes rather than only .go files using -all
+- [x] Tested on Windows 10
+- [x] Prevents annoying Windows [firewall prompt](annoying_windows_network_prompt.png) that happens when using `go run` since it always compile to the same binary file name
+- [ ] Add optional debounce/delay for when multiple files change simultaneously (git branch change and other tooling)
+- [ ] Remove godep support (thanks for everything godep team ❤)
+- [ ] Add go.mod file
+- [ ] Add --files argument to allow filtering files being watched using [glob](https://en.wikipedia.org/wiki/Glob_(programming)) matching
+- [ ] Write tests including real file system usage
+- [ ] Test on popular Linux distros, BSD and OSX
+
+## Rather not do
+
+- [ ] Config file: Passing arguments gets old but running `gogo` just works for most projects. Also Makefiles and shellscripts can fullfill this role.
 
 ## Changelog
 
