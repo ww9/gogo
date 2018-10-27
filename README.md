@@ -54,5 +54,5 @@
 
 This is a heavily modified fork of [acoshift/goreload](https://github.com/acoshift/goreload) which itself is a fork of [codegangsta/gin](https://github.com/codegangsta/gin).
 
-### License
+## License
 MIT
