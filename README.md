@@ -1,3 +1,5 @@
+[![MIT License](https://img.shields.io/badge/license-MIT-blue.svg?style=flat)](LICENSE) [![Go Report Card](https://goreportcard.com/badge/github.com/ww9/gogo)](https://goreportcard.com/report/github.com/ww9/gogo)
+
 # gogo 🏃
 
 `gogo` compiles and restarts Go applications when code changes.
