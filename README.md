@@ -31,6 +31,7 @@
 - [X] Supports listening to all file changes rather than only .go files using -all
 - [x] Tested on Windows 10
 - [x] Prevents annoying Windows [firewall prompt](annoying_windows_network_prompt.png) that happens when using `go run` since it always compile to the same binary file name
+- [ ] Option to delete compiled file after exiting `gogo`. Perhaps enabled by default even
 - [ ] Add optional debounce/delay for when multiple files change simultaneously (git branch change and other tooling)
 - [ ] Remove godep support (thanks for everything godep team ❤)
 - [ ] Add go.mod file
