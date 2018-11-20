@@ -1,4 +1,4 @@
-[![MIT License](https://img.shields.io/badge/license-MIT-blue.svg?style=flat)](LICENSE) [![Go Report Card](https://goreportcard.com/badge/github.com/ww9/gogo)](https://goreportcard.com/report/github.com/ww9/gogo)
+[![License: Unlicense](https://img.shields.io/badge/license-Unlicense-blue.svg)](http://unlicense.org/) [![Go Report Card](https://goreportcard.com/badge/github.com/ww9/gogo)](https://goreportcard.com/report/github.com/ww9/gogo)
 
 # gogo 🏃
 
