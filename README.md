@@ -56,4 +56,5 @@
 This is a heavily modified fork of [acoshift/goreload](https://github.com/acoshift/goreload) which itself is a fork of [codegangsta/gin](https://github.com/codegangsta/gin).
 
 ## License
-MIT
+
+[The Unlicense](http://unlicense.org/), [Public Domain](https://gist.github.com/ww9/4c4481fb7b55186960a34266078c88b1). As free as it gets.
